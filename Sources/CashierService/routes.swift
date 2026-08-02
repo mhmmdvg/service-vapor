@@ -10,5 +10,8 @@ func routes(_ app: Application) throws {
         "Hello, world!"
     }
 
-    try app.register(collection: TodoController())
+    try app.register(collection: UserController())
+    try app.register(collection: CustomerController())
+    try app.register(collection: DeviceController())
+    try app.register(collection: OrderController())
 }
