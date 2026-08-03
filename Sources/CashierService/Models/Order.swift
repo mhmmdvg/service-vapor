@@ -30,26 +30,11 @@ final class Order: Model, @unchecked Sendable {
     @Parent(key: "customer_id")
     var customer: Customer
 
-    @Parent(key: "device_id")
-    var device: Device
-
     @Parent(key: "cashier_id")
     var cashier: User
 
-    @OptionalField(key: "complaint")
-    var complaint: String?
-
-    @Enum(key: "status")
-    var status: OrderStatus
-
-    @Field(key: "final_cost")
-    var finalCost: Int64
-
     @Timestamp(key: "created_at", on: .create)
     var createdAt: Date?
-
-    @Timestamp(key: "updated_at", on: .update)
-    var updatedAt: Date?
 
     init() {}
 
@@ -59,11 +44,7 @@ final class Order: Model, @unchecked Sendable {
             orderCode: self.orderCode,
             qrToken: self.qrToken,
             customerID: self.$customer.id,
-            deviceID: self.$device.id,
             cashierID: self.$cashier.id,
-            complaint: self.complaint ?? "",
-            status: self.status,
-            finalCost: self.finalCost
         )
     }
 }
