@@ -5,7 +5,6 @@
 //  Created by Muhammad Vikri on 02/08/26.
 //
 
-import Fluent
 import Vapor
 
 struct UserPublicDTO: Content {
