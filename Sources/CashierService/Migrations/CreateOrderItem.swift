@@ -22,7 +22,7 @@ struct CreateOrderItem: AsyncMigration {
             .field("device_id", .uuid, .required, .references("devices", "id"))
             .field("complaint", .string)
             .field("status", status)
-            .field("final_cost", .int64, .required)
+            .field("final_cost", .int64)
             .field("created_at", .datetime)
             .field("updated_at", .datetime)
             .create()

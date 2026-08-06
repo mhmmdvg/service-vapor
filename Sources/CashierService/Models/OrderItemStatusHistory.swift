@@ -33,10 +33,12 @@ final class OrderItemStatusHistory: Model, @unchecked Sendable {
 
     func toDTO() -> OrderItemStatusHistoryDTO {
         .init(
+            id: self.id,
             orderItemID: self.$orderItem.id,
             status: self.status,
             note: self.note,
-            updatedBy: self.$user.id
+            updatedBy: self.$user.id,
+            createdAt: self.createdAt
         )
     }
 }

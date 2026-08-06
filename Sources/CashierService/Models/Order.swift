@@ -32,6 +32,9 @@ final class Order: Model, @unchecked Sendable {
 
     @Parent(key: "cashier_id")
     var cashier: User
+    
+    @Children(for: \.$order)
+    var items: [OrderItem]
 
     @Timestamp(key: "created_at", on: .create)
     var createdAt: Date?

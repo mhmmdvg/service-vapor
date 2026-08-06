@@ -25,9 +25,12 @@ final class OrderItem: Model, @unchecked Sendable {
 
     @Enum(key: "status")
     var status: OrderStatus
+    
+    @Children(for: \.$orderItem)
+    var statusHistory: [OrderItemStatusHistory]
 
-    @Field(key: "final_cost")
-    var finalCost: Int64
+    @OptionalField(key: "final_cost")
+    var finalCost: Int64?
 
     @Timestamp(key: "created_at", on: .create)
     var createdAt: Date?
@@ -42,6 +45,7 @@ final class OrderItem: Model, @unchecked Sendable {
             id: self.id,
             orderID: self.$order.id,
             deviceID: self.$device.id,
+            complaint: self.complaint,
             status: self.status,
             finalCost: self.finalCost
         )

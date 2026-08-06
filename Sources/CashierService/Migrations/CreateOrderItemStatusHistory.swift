@@ -14,7 +14,7 @@ struct CreateOrderItemStatusHistory: AsyncMigration {
         try await database.schema("order_item_status_history")
             .id()
             .field("order_item_id", .uuid, .required, .references("order_items", "id"))
-            .field("status", status)
+            .field("status", status, .required)
             .field("note", .string)
             .field("updated_by", .uuid, .required, .references("users", "id"))
             .field("created_at", .datetime)
@@ -22,7 +22,6 @@ struct CreateOrderItemStatusHistory: AsyncMigration {
     }
     
     func revert(on database: any Database) async throws {
-        try await database.enum("order_status").delete()
-        try await database.schema("order_status_history").delete()
+        try await database.schema("order_item_status_history").delete()
     }
 }

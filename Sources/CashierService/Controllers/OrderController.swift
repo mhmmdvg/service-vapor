@@ -8,13 +8,35 @@
 import Fluent
 import JWT
 import Vapor
+import VaporToOpenAPI
 
 struct OrderController: RouteCollection {
     func boot(routes: any RoutesBuilder) throws {
         let orders = routes.grouped("orders")
 
         orders.get(use: self.index)
+            .openAPI(
+                summary: "List Orders",
+                description: "Ambil semua order",
+                response: .type(APIResponse<[OrderDTO]>.self)
+            )
         orders.post(use: self.create)
+            .openAPI(
+                summary: "Create Order",
+                description:
+                    "Buat order baru beserta order item (device) di dalamnya",
+                body: .type(OrderCreateDTO.self),
+                response: .type(APIResponse<OrderDTO>.self)
+            )
+        orders.group(":orderID") { order in
+            order.get(use: self.show)
+                .openAPI(
+                    summary: "Get Order Detail",
+                    description:
+                        "Detail order lengkap, dipakai layar konfirmasi setelah create order dan buat cetak struk",
+                    response: .type(APIResponse<OrderDetailDTO>.self)
+                )
+        }
     }
 
     @Sendable
@@ -26,6 +48,32 @@ struct OrderController: RouteCollection {
             message: "Success get all orders",
             data: orders
         )
+    }
+
+    @Sendable
+    func show(req: Request) async throws -> APIResponse<OrderDetailDTO> {
+        guard let orderID = req.parameters.get("orderID", as: UUID.self) else {
+            throw Abort(.badRequest, reason: "Invalid order ID")
+        }
+
+        let query = Order.query(on: req.db)
+            .filter(\.$id == orderID)
+            .with(\.$customer)
+            .with(\.$cashier)
+            .with(\.$items) { item in
+                item.with(\.$device)
+            }
+
+        guard let order = try await query.first() else {
+            throw Abort(.notFound, reason: "Order not found")
+        }
+
+        return APIResponse(
+            status: true,
+            message: "Successfully fetched order detail",
+            data: order.toDetailDTO()
+        )
+
     }
 
     @Sendable
@@ -72,6 +120,7 @@ struct OrderController: RouteCollection {
             order.qrToken = UUID().uuidString
             order.$customer.id = try customer.requireID()
             order.$cashier.id = payload.userID
+
             try await order.save(on: db)
 
             for itemDTO in dto.items {
@@ -115,7 +164,7 @@ struct OrderController: RouteCollection {
                 item.$device.id = try device.requireID()
                 item.complaint = itemDTO.complaint
                 item.status = .received
-                item.finalCost = 0
+                item.finalCost = itemDTO.finalCost
                 try await item.save(on: db)
             }
 

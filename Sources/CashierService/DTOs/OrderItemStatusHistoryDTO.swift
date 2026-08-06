@@ -10,10 +10,11 @@ import Vapor
 
 struct OrderItemStatusHistoryDTO: Content {
     var id: UUID?
-    var orderItemID: Order.IDValue
+    var orderItemID: OrderItem.IDValue
     var status: OrderStatus
     var note: String?
     var updatedBy: User.IDValue
+    var createdAt: Date?
     
     func toModel() -> OrderItemStatusHistory {
         let model = OrderItemStatusHistory()

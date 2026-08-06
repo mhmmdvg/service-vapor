@@ -8,10 +8,18 @@
 import Fluent
 import JWT
 import Vapor
+import VaporToOpenAPI
 
 struct LoginController: RouteCollection {
     func boot(routes: any RoutesBuilder) throws {
         routes.post("login", use: self.index)
+            .openAPI(
+                summary: "Login",
+                description: "Login menggunakan email dan password, mengembalikan JWT token",
+                body: .type(LoginDTO.self), 
+                response: .type(APIResponse<LoginResponseDTO>.self) 
+            )
+            .openAPINoAuth()
     }
     
     @Sendable
