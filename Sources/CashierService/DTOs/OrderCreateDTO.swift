@@ -13,6 +13,7 @@ struct OrderItemCreateDTO: Content {
     var model: String?
     var color: String?
     var complaint: String
+    var finalCost: Int64?
 }
 
 struct OrderCreateDTO: Content {

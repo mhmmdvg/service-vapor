@@ -21,7 +21,7 @@ let package = Package(
             url: "https://github.com/apple/swift-nio.git",
             from: "2.101.0"
         ),
-
+        .package(url: "https://github.com/dankinsoid/VaporToOpenAPI.git", from: "4.8.1"),
         .package(url: "https://github.com/vapor/jwt.git", from: "5.0.0"),
     ],
     targets: [
@@ -36,6 +36,7 @@ let package = Package(
                 .product(name: "Vapor", package: "vapor"),
                 .product(name: "NIOCore", package: "swift-nio"),
                 .product(name: "NIOPosix", package: "swift-nio"),
+                .product(name: "VaporToOpenAPI", package: "VaporToOpenAPI"),
                 .product(name: "JWT", package: "jwt")
             ],
             swiftSettings: swiftSettings

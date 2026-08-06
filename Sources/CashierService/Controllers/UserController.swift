@@ -10,9 +10,9 @@ import Vapor
 
 struct UserController: RouteCollection {
     func boot(routes: any RoutesBuilder) throws {
-        let users = routes
-            .grouped("users")
-
+        routes.get("me", use: self.me)
+        
+        let users = routes.grouped("users")
         users.get(use: self.index)
         users.post(use: self.create)
         users.group(":userID") { user in
@@ -28,6 +28,18 @@ struct UserController: RouteCollection {
             status: true,
             message: "Success get all user",
             data: users
+        )
+    }
+
+    @Sendable
+    func me(req: Request) async throws -> APIResponse<UserPublicDTO> {
+        let payload = try req.auth.require(UserPayload.self)
+        let user = try await User.find(payload.userID, on: req.db)
+
+        return APIResponse(
+            status: true,
+            message: "Success get \(String(describing: user?.name))",
+            data: user?.toDTO()
         )
     }
 

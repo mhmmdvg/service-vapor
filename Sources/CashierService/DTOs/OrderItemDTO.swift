@@ -14,7 +14,7 @@ struct OrderItemDTO: Content {
     var deviceID: Device.IDValue
     var complaint: String?
     var status: OrderStatus
-    var finalCost: Int64
+    var finalCost: Int64?
     
     func toModel() -> OrderItem {
         let model = OrderItem()
