@@ -19,6 +19,9 @@ struct ErrorEnvelopeMiddleware: AsyncMiddleware {
         do {
             return try await next.respond(to: request)
         } catch {
+            request.logger.report(error: error)
+            dump(error)
+
             let status: HTTPResponseStatus
             let message: String
 
@@ -31,7 +34,7 @@ struct ErrorEnvelopeMiddleware: AsyncMiddleware {
             }
 
             let errorResponse = ErrorResponse(status: false, message: message)
-            
+
             let response = Response(status: status)
             try response.content.encode(errorResponse)
             return response

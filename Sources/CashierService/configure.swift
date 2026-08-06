@@ -26,17 +26,17 @@ func configure(_ app: Application) async throws {
     
 //    app.migrations.add(CreateTodo())
     
-//    app.migrations.add(CreateUser())
-//    app.migrations.add(SeedUser())
-//    app.migrations.add(CreateCustomer())
-//    app.migrations.add(SeedCustomer())
-//    app.migrations.add(CreateDevice())
-//    app.migrations.add(CreateOrder())
-//    app.migrations.add(CreateOrderItem())
-//    app.migrations.add(CreatePayment())
-//    app.migrations.add(CreateOrderItemStatusHistory())
-//    app.migrations.add(CreateSparePart())
-//    app.migrations.add(CreateOrderPart())
+    app.migrations.add(CreateUser())
+    app.migrations.add(SeedUser())
+    app.migrations.add(CreateCustomer())
+    app.migrations.add(SeedCustomer())
+    app.migrations.add(CreateDevice())
+    app.migrations.add(CreateOrder())
+    app.migrations.add(CreateOrderItem())
+    app.migrations.add(CreatePayment())
+    app.migrations.add(CreateOrderItemStatusHistory())
+    app.migrations.add(CreateSparePart())
+    app.migrations.add(CreateOrderPart())
     
     
 

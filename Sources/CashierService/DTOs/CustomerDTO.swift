@@ -27,3 +27,11 @@ struct CustomerDTO: Content {
         return model
     }
 }
+
+struct CustomerInputDTO: Content {
+    var customerID: UUID?
+    var name: String?
+    var phone: String?
+    var email: String?
+    var address: String?
+}

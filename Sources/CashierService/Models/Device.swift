@@ -26,8 +26,8 @@ final class Device: Model, @unchecked Sendable {
     @Field(key: "color")
     var color: String
 
-    @Timestamp(key: "created_at", on: .create)
-    var createdAt: Date?
+//    @Timestamp(key: "created_at", on: .create)
+//    var createdAt: Date?
 
     init() {}
 
