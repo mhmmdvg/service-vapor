@@ -20,6 +20,13 @@ struct OrderController: RouteCollection {
                 description: "Ambil semua order",
                 response: .type(APIResponse<[OrderDTO]>.self)
             )
+        orders.get("history", use: self.history)
+            .openAPI(
+                summary: "List Order History",
+                description:
+                    "Ambil order yang seluruh order item-nya sudah completed, dipakai buat layar riwayat order",
+                response: .type(APIResponse<[OrderSummaryDTO]>.self)
+            )
         orders.post(use: self.create)
             .openAPI(
                 summary: "Create Order",
@@ -47,6 +54,25 @@ struct OrderController: RouteCollection {
             status: true,
             message: "Success get all orders",
             data: orders
+        )
+    }
+
+    @Sendable
+    func history(req: Request) async throws -> APIResponse<[OrderSummaryDTO]> {
+        let orders = try await Order.query(on: req.db)
+            .with(\.$customer)
+            .with(\.$items)
+            .all()
+
+        let history = orders
+            .filter { !$0.items.isEmpty && $0.items.allSatisfy { $0.status == .completed } }
+            .sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
+            .map { $0.toSummaryDTO(status: .completed) }
+
+        return APIResponse(
+            status: true,
+            message: "Success get order history",
+            data: history
         )
     }
 
