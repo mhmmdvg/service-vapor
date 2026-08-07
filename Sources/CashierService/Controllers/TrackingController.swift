@@ -32,6 +32,7 @@ struct TrackingController: RouteCollection {
             .with(\.$items) { item in
                 item.with(\.$device)
                 item.with(\.$statusHistory)
+                item.with(\.$parts) { $0.with(\.$sparePart) }
             }
 
         guard let order = try await query.first() else {
