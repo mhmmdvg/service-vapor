@@ -10,5 +10,5 @@ import Vapor
 struct OrderItemUpdateDTO: Content {
     var status: OrderStatus?
     var note: String?
-    var finalCost: Int64?
+    var serviceFee: Int64?
 }

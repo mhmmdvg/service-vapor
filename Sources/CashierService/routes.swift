@@ -37,4 +37,6 @@ func routes(_ app: Application) throws {
     try protected.register(collection: DeviceController())
     try protected.register(collection: OrderController())
     try protected.register(collection: OrderItemController())
+    try protected.register(collection: OrderPartController())
+    try protected.register(collection: SparePartController())
 }

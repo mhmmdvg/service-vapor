@@ -19,8 +19,10 @@ struct OrderItemTrackingDTO: Content {
     var deviceModel: String
     var complaint: String?
     var status: OrderStatus
+    var serviceFee: Int64?
     var finalCost: Int64?
     var statusHistory: [StatusHistoryPointDTO]
+    var parts: [OrderPartDetailDTO]
 }
 
 struct StatusHistoryPointDTO: Content {
@@ -46,10 +48,12 @@ extension OrderItem {
             deviceModel: self.device.model,
             complaint: self.complaint,
             status: self.status,
+            serviceFee: self.serviceFee,
             finalCost: self.finalCost,
             statusHistory: self.statusHistory
                 .sorted { ($0.createdAt ?? .distantPast) < ($1.createdAt ?? .distantPast) }
-                .map { StatusHistoryPointDTO(status: $0.status, createdAt: $0.createdAt) }
+                .map { StatusHistoryPointDTO(status: $0.status, createdAt: $0.createdAt) },
+            parts: self.parts.map { $0.toDetailDTO() }
         )
     }
 }

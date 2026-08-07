@@ -14,17 +14,19 @@ struct OrderItemDTO: Content {
     var deviceID: Device.IDValue
     var complaint: String?
     var status: OrderStatus
+    var serviceFee: Int64?
     var finalCost: Int64?
-    
+
     func toModel() -> OrderItem {
         let model = OrderItem()
-        
+
         model.$order.id = self.orderID
         model.$device.id = self.deviceID
         model.complaint = self.complaint
         model.status = self.status
+        model.serviceFee = self.serviceFee
         model.finalCost = self.finalCost
-        
+
         return model
     }
 }

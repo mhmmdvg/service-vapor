@@ -33,6 +33,7 @@ func configure(_ app: Application) async throws {
     app.migrations.add(CreateDevice())
     app.migrations.add(CreateOrder())
     app.migrations.add(CreateOrderItem())
+    app.migrations.add(AddServiceFeeToOrderItem())
     app.migrations.add(CreatePayment())
     app.migrations.add(CreateOrderItemStatusHistory())
     app.migrations.add(CreateSparePart())

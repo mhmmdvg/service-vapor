@@ -24,9 +24,9 @@ struct OrderController: RouteCollection {
             .openAPI(
                 summary: "Create Order",
                 description:
-                    "Buat order baru beserta order item (device) di dalamnya",
+                    "Buat order baru beserta order item (device) di dalamnya. Biaya jasa dan spare part boleh langsung diisi per item kalau sudah pasti tanpa perlu diagnosa dulu; kalau belum, biarkan kosong dan lengkapi belakangan lewat PATCH order item / endpoint tambah spare part",
                 body: .type(OrderCreateDTO.self),
-                response: .type(APIResponse<OrderDTO>.self)
+                response: .type(APIResponse<OrderCreateResponseDTO>.self)
             )
         orders.group(":orderID") { order in
             order.get(use: self.show)
@@ -62,6 +62,7 @@ struct OrderController: RouteCollection {
             .with(\.$cashier)
             .with(\.$items) { item in
                 item.with(\.$device)
+                item.with(\.$parts) { $0.with(\.$sparePart) }
             }
 
         guard let order = try await query.first() else {
@@ -77,7 +78,7 @@ struct OrderController: RouteCollection {
     }
 
     @Sendable
-    func create(req: Request) async throws -> APIResponse<OrderDTO> {
+    func create(req: Request) async throws -> APIResponse<OrderCreateResponseDTO> {
         let payload = try req.auth.require(UserPayload.self)
 
         return try await req.db.transaction { db in
@@ -123,6 +124,8 @@ struct OrderController: RouteCollection {
 
             try await order.save(on: db)
 
+            var createdItems: [OrderItemDTO] = []
+
             for itemDTO in dto.items {
                 let device: Device
 
@@ -164,14 +167,31 @@ struct OrderController: RouteCollection {
                 item.$device.id = try device.requireID()
                 item.complaint = itemDTO.complaint
                 item.status = .received
-                item.finalCost = itemDTO.finalCost
+                item.serviceFee = itemDTO.serviceFee
                 try await item.save(on: db)
+
+                for partDTO in itemDTO.parts ?? [] {
+                    try await item.attachPart(
+                        sparePartID: partDTO.sparePartID,
+                        qty: partDTO.qty,
+                        on: db
+                    )
+                }
+
+                if itemDTO.serviceFee != nil || itemDTO.parts?.isEmpty == false {
+                    try await item.recalculateFinalCost(on: db)
+                }
+
+                createdItems.append(item.toDTO())
             }
 
             return APIResponse(
                 status: true,
                 message: "Success create order",
-                data: order.toDTO()
+                data: OrderCreateResponseDTO(
+                    order: order.toDTO(),
+                    items: createdItems
+                )
             )
         }
     }

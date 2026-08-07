@@ -18,7 +18,8 @@ struct OrderItemController: RouteCollection {
             item.patch(use: self.update)
                 .openAPI(
                     summary: "Update Order Item",
-                    description: "Update order item status dan biaya",
+                    description:
+                        "Update status order item beserta catatan histori-nya, dan/atau set biaya jasa (final cost dihitung ulang otomatis = biaya jasa + total harga spare part)",
                     body: .type(OrderItemUpdateDTO.self),
                     response: .type(APIResponse<OrderItemDTO>.self)
                 )
@@ -54,11 +55,11 @@ struct OrderItemController: RouteCollection {
                 item.status = newStatus
             }
 
-            if let finalCost = dto.finalCost {
-                item.finalCost = finalCost
+            if let serviceFee = dto.serviceFee {
+                item.serviceFee = serviceFee
             }
 
-            try await item.save(on: db)
+            try await item.recalculateFinalCost(on: db)
 
             return APIResponse(
                 status: true,
