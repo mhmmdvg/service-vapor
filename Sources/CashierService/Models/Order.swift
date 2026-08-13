@@ -41,13 +41,15 @@ final class Order: Model, @unchecked Sendable {
 
     init() {}
 
+    /// Membutuhkan relasi `customer` dan `cashier` sudah ter-load.
     func toDTO() -> OrderDTO {
         .init(
             id: self.id,
             orderCode: self.orderCode,
             qrToken: self.qrToken,
-            customerID: self.$customer.id,
-            cashierID: self.$cashier.id,
+            createdAt: self.createdAt,
+            customer: .init(id: self.$customer.id, name: self.customer.name),
+            cashier: .init(id: self.$cashier.id, name: self.cashier.name)
         )
     }
 }

@@ -54,7 +54,11 @@ struct OrderController: RouteCollection {
 
     @Sendable
     func index(req: Request) async throws -> APIResponse<[OrderDTO]> {
-        let orders = try await Order.query(on: req.db).all().map { $0.toDTO() }
+        let orders = try await Order.query(on: req.db)
+            .with(\.$customer)
+            .with(\.$cashier)
+            .all()
+            .map { $0.toDTO() }
 
         return APIResponse(
             status: true,
@@ -182,11 +186,18 @@ struct OrderController: RouteCollection {
                 customer = newCustomer
             }
 
+            guard let cashier = try await User.find(payload.userID, on: db)
+            else {
+                throw Abort(.notFound, reason: "Cashier tidak ditemukan")
+            }
+
             let order = Order()
             order.orderCode = "SV-\(Int(Date().timeIntervalSince1970))"
             order.qrToken = UUID().uuidString
             order.$customer.id = try customer.requireID()
-            order.$cashier.id = payload.userID
+            order.$customer.value = customer
+            order.$cashier.id = try cashier.requireID()
+            order.$cashier.value = cashier
 
             try await order.save(on: db)
 
