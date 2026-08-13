@@ -12,7 +12,6 @@ enum OrderSummaryStatus: String, Codable, CaseIterable {
     case completed
 }
 
-/// Ringkasan satu order untuk tampilan list (in progress / history), bukan detail lengkap.
 struct OrderSummaryDTO: Content {
     var id: UUID?
     var orderCode: String
@@ -24,7 +23,6 @@ struct OrderSummaryDTO: Content {
 }
 
 extension Order {
-    /// Butuh relasi `customer` dan `items` sudah di-eager-load.
     func toSummaryDTO(status: OrderSummaryStatus) -> OrderSummaryDTO {
         .init(
             id: self.id,

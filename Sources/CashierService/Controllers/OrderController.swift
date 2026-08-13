@@ -27,6 +27,12 @@ struct OrderController: RouteCollection {
                     "Ambil order yang seluruh order item-nya sudah completed, dipakai buat layar riwayat order",
                 response: .type(APIResponse<[OrderSummaryDTO]>.self)
             )
+        orders.get("in-progress", use: self.inProgress)
+            .openAPI(
+                summary: "List in-progress order",
+                description: "List order yang masih progress",
+                response: .type(APIResponse<[OrderSummaryDTO]>.self)
+            )
         orders.post(use: self.create)
             .openAPI(
                 summary: "Create Order",
@@ -48,7 +54,11 @@ struct OrderController: RouteCollection {
 
     @Sendable
     func index(req: Request) async throws -> APIResponse<[OrderDTO]> {
-        let orders = try await Order.query(on: req.db).all().map { $0.toDTO() }
+        let orders = try await Order.query(on: req.db)
+            .with(\.$customer)
+            .with(\.$cashier)
+            .all()
+            .map { $0.toDTO() }
 
         return APIResponse(
             status: true,
@@ -64,15 +74,47 @@ struct OrderController: RouteCollection {
             .with(\.$items)
             .all()
 
-        let history = orders
-            .filter { !$0.items.isEmpty && $0.items.allSatisfy { $0.status == .completed } }
-            .sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
+        let history =
+            orders
+            .filter {
+                !$0.items.isEmpty
+                    && $0.items.allSatisfy { $0.status == .completed }
+            }
+            .sorted {
+                ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast)
+            }
             .map { $0.toSummaryDTO(status: .completed) }
 
         return APIResponse(
             status: true,
             message: "Success get order history",
             data: history
+        )
+    }
+
+    @Sendable
+    func inProgress(req: Request) async throws -> APIResponse<[OrderSummaryDTO]>
+    {
+        let orders = try await Order.query(on: req.db)
+            .with(\.$customer)
+            .with(\.$items)
+            .all()
+
+        let inProgress =
+            orders
+            .filter {
+                !$0.items.isEmpty
+                    && !$0.items.allSatisfy { $0.status == .completed }
+            }
+            .sorted {
+                ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast)
+            }
+            .map { $0.toSummaryDTO(status: .inProgress) }
+
+        return APIResponse(
+            status: true,
+            message: "Success get in progress orders",
+            data: inProgress
         )
     }
 
@@ -104,7 +146,9 @@ struct OrderController: RouteCollection {
     }
 
     @Sendable
-    func create(req: Request) async throws -> APIResponse<OrderCreateResponseDTO> {
+    func create(req: Request) async throws -> APIResponse<
+        OrderCreateResponseDTO
+    > {
         let payload = try req.auth.require(UserPayload.self)
 
         return try await req.db.transaction { db in
@@ -142,11 +186,18 @@ struct OrderController: RouteCollection {
                 customer = newCustomer
             }
 
+            guard let cashier = try await User.find(payload.userID, on: db)
+            else {
+                throw Abort(.notFound, reason: "Cashier tidak ditemukan")
+            }
+
             let order = Order()
             order.orderCode = "SV-\(Int(Date().timeIntervalSince1970))"
             order.qrToken = UUID().uuidString
             order.$customer.id = try customer.requireID()
-            order.$cashier.id = payload.userID
+            order.$customer.value = customer
+            order.$cashier.id = try cashier.requireID()
+            order.$cashier.value = cashier
 
             try await order.save(on: db)
 
@@ -204,7 +255,8 @@ struct OrderController: RouteCollection {
                     )
                 }
 
-                if itemDTO.serviceFee != nil || itemDTO.parts?.isEmpty == false {
+                if itemDTO.serviceFee != nil || itemDTO.parts?.isEmpty == false
+                {
                     try await item.recalculateFinalCost(on: db)
                 }
 

@@ -23,7 +23,21 @@ struct LoginDTO: Content {
 
 struct LoginResponseDTO: Content {
     let accessToken: String
+    let refreshToken: String
+    /// Umur access token dalam detik.
+    let expiresIn: Int
     let user: LoginUserDTO
+}
+
+struct TokenPairDTO: Content {
+    let accessToken: String
+    let refreshToken: String
+    /// Umur access token dalam detik.
+    let expiresIn: Int
+}
+
+struct RefreshTokenDTO: Content {
+    let refreshToken: String
 }
 
 struct LoginUserDTO: Content {
