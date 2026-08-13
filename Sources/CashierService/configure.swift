@@ -7,7 +7,12 @@ import JWT
 /// configures your application
 func configure(_ app: Application) async throws {
     let jwtSecret = Environment.get("JWT_SECRET") ?? "jwt-secret"
-    
+
+//    // Bind every interface, not just loopback, so the Android emulator and physical
+//    // devices on the LAN can reach the dev server. Override with SERVER_HOSTNAME.
+//    app.http.server.configuration.hostname = Environment.get("SERVER_HOSTNAME") ?? "0.0.0.0"
+//    app.http.server.configuration.port = Environment.get("SERVER_PORT").flatMap(Int.init) ?? 8080
+
     // uncomment to serve files from /Public folder
      app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
     
@@ -28,6 +33,7 @@ func configure(_ app: Application) async throws {
     
     app.migrations.add(CreateUser())
     app.migrations.add(SeedUser())
+    app.migrations.add(CreateRefreshToken())
     app.migrations.add(CreateCustomer())
     app.migrations.add(SeedCustomer())
     app.migrations.add(CreateDevice())
