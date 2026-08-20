@@ -62,7 +62,7 @@ struct OrderItemController: RouteCollection {
             try await item.recalculateFinalCost(on: db)
 
             return APIResponse(
-                status: true,
+                success: true,
                 message: "Order item updated",
                 data: item.toDTO()
             )

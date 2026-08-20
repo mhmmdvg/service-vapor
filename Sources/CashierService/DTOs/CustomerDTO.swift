@@ -12,7 +12,7 @@ struct CustomerDTO: Content {
     var id: UUID?
     var name: String
     var phone: String
-    var email: String
+    var email: String?
     var address: String
     var createdAt: Date?
     
@@ -32,6 +32,5 @@ struct CustomerInputDTO: Content {
     var customerID: UUID?
     var name: String?
     var phone: String?
-    var email: String?
     var address: String?
 }

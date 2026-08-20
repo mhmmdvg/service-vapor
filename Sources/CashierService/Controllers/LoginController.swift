@@ -68,7 +68,7 @@ struct LoginController: RouteCollection {
         )
 
         return APIResponse(
-            status: true,
+            success: true,
             message: "Login successfully",
             data: LoginResponseDTO(
                 accessToken: tokens.accessToken,
@@ -131,7 +131,7 @@ struct LoginController: RouteCollection {
             )
 
             return APIResponse(
-                status: true,
+                success: true,
                 message: "Success refresh token",
                 data: tokens
             )
@@ -151,7 +151,7 @@ struct LoginController: RouteCollection {
             try await session.delete(on: req.db)
         }
 
-        return APIResponse(status: true, message: "Logout successfully")
+        return APIResponse(success: true, message: "Logout successfully")
     }
 
     private func verifyRefreshToken(

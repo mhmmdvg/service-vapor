@@ -22,7 +22,7 @@ struct DeviceController: RouteCollection {
         }
 
         return APIResponse(
-            status: true,
+            success: true,
             message: "Success get all Devices",
             data: devices
         )

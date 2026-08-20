@@ -25,7 +25,7 @@ struct UserController: RouteCollection {
         let users = try await User.query(on: req.db).all().map { $0.toDTO() }
 
         return APIResponse(
-            status: true,
+            success: true,
             message: "Success get all user",
             data: users
         )
@@ -37,7 +37,7 @@ struct UserController: RouteCollection {
         let user = try await User.find(payload.userID, on: req.db)
 
         return APIResponse(
-            status: true,
+            success: true,
             message: "Success get \(String(describing: user?.name))",
             data: user?.toDTO()
         )
@@ -49,7 +49,7 @@ struct UserController: RouteCollection {
         try await user.save(on: req.db)
 
         return APIResponse(
-            status: true,
+            success: true,
             message: "Create user successfully",
             data: user.toDTO()
         )
@@ -69,7 +69,7 @@ struct UserController: RouteCollection {
         try await user.delete(on: req.db)
 
         return APIResponse(
-            status: true,
+            success: true,
             message: "User deleted successfully",
             data: nil
         )

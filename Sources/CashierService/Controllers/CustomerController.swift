@@ -23,7 +23,7 @@ struct CustomerController: RouteCollection {
         }
 
         return APIResponse(
-            status: true,
+            success: true,
             message: "Success get all customers",
             data: customers
         )

@@ -10,7 +10,7 @@ import Vapor
 
 struct SeedUser: AsyncMigration {
     func prepare(on database: any Database) async throws {
-        let hashedPassword = try Bcrypt.hash("password")
+        let hashedPassword = try Bcrypt.hash("password123")
         
         let admin = User()
         admin.name = "Administrator"

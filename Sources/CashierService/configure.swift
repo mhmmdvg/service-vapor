@@ -27,6 +27,7 @@ func configure(_ app: Application) async throws {
 
     await app.jwt.keys.add(hmac: .init(from: jwtSecret), digestAlgorithm: .sha256)
     app.middleware.use(ErrorEnvelopeMiddleware())
+    configureContentCoding()
     
     
 //    app.migrations.add(CreateTodo())
@@ -36,6 +37,7 @@ func configure(_ app: Application) async throws {
     app.migrations.add(CreateRefreshToken())
     app.migrations.add(CreateCustomer())
     app.migrations.add(SeedCustomer())
+    app.migrations.add(RelaxCustomerEmail())
     app.migrations.add(CreateDevice())
     app.migrations.add(CreateOrder())
     app.migrations.add(CreateOrderItem())

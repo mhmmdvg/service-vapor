@@ -60,7 +60,7 @@ struct OrderPartController: RouteCollection {
                 .all()
 
             return APIResponse(
-                status: true,
+                success: true,
                 message: "Spare part added to order item",
                 data: OrderItemPartsDTO(
                     orderItemID: orderItemID,
@@ -115,7 +115,7 @@ struct OrderPartController: RouteCollection {
                 .all()
 
             return APIResponse(
-                status: true,
+                success: true,
                 message: "Spare part removed from order item",
                 data: OrderItemPartsDTO(
                     orderItemID: orderItemID,

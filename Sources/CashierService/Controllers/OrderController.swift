@@ -17,20 +17,25 @@ struct OrderController: RouteCollection {
         orders.get(use: self.index)
             .openAPI(
                 summary: "List Orders",
-                description: "Ambil semua order",
+                description:
+                    "Ambil semua order, urut dari yang terbaru. Berpaginasi lewat query `page` dan `per_page` (default \(PageRequest.defaultPerPage), maksimal \(PageRequest.maxPerPage)). Query `search` menyaring berdasarkan kode order, nama customer, atau nomor HP customer",
+                query: .type(OrderListQueryDTO.self),
                 response: .type(APIResponse<[OrderDTO]>.self)
             )
         orders.get("history", use: self.history)
             .openAPI(
                 summary: "List Order History",
                 description:
-                    "Ambil order yang seluruh order item-nya sudah completed, dipakai buat layar riwayat order",
+                    "Ambil order yang seluruh order item-nya sudah completed, dipakai buat layar riwayat order. Berpaginasi lewat query `page` dan `per_page`, bisa disaring lewat query `search`",
+                query: .type(OrderListQueryDTO.self),
                 response: .type(APIResponse<[OrderSummaryDTO]>.self)
             )
         orders.get("in-progress", use: self.inProgress)
             .openAPI(
                 summary: "List in-progress order",
-                description: "List order yang masih progress",
+                description:
+                    "List order yang masih progress. Berpaginasi lewat query `page` dan `per_page`, bisa disaring lewat query `search`",
+                query: .type(OrderListQueryDTO.self),
                 response: .type(APIResponse<[OrderSummaryDTO]>.self)
             )
         orders.post(use: self.create)
@@ -54,68 +59,135 @@ struct OrderController: RouteCollection {
 
     @Sendable
     func index(req: Request) async throws -> APIResponse<[OrderDTO]> {
+        let page = try PageRequest(req)
+        let search = try SearchQuery(req)
+
+        let total = try await Order.query(on: req.db)
+            .filter(search: search)
+            .count()
         let orders = try await Order.query(on: req.db)
+            .filter(search: search)
             .with(\.$customer)
             .with(\.$cashier)
+            .sort(\.$createdAt, .descending)
+            .limit(page.perPage)
+            .offset(page.offset)
             .all()
             .map { $0.toDTO() }
 
         return APIResponse(
-            status: true,
+            success: true,
             message: "Success get all orders",
-            data: orders
+            data: orders,
+            pageInfo: PageInfo(
+                page: page.page,
+                perPage: page.perPage,
+                total: total
+            )
         )
     }
 
     @Sendable
     func history(req: Request) async throws -> APIResponse<[OrderSummaryDTO]> {
-        let orders = try await Order.query(on: req.db)
-            .with(\.$customer)
-            .with(\.$items)
-            .all()
-
-        let history =
-            orders
-            .filter {
-                !$0.items.isEmpty
-                    && $0.items.allSatisfy { $0.status == .completed }
-            }
-            .sorted {
-                ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast)
-            }
-            .map { $0.toSummaryDTO(status: .completed) }
-
-        return APIResponse(
-            status: true,
+        try await self.summaryPage(
+            status: .completed,
             message: "Success get order history",
-            data: history
+            req: req
         )
     }
 
     @Sendable
     func inProgress(req: Request) async throws -> APIResponse<[OrderSummaryDTO]>
     {
+        try await self.summaryPage(
+            status: .inProgress,
+            message: "Success get in progress orders",
+            req: req
+        )
+    }
+
+    /// Ambil satu halaman order sesuai status ringkasannya. Order-nya disaring lewat
+    /// daftar id dari tabel order_items dulu, jadi yang di-load dengan relasinya cuma
+    /// order yang benar-benar masuk halaman ini.
+    private func summaryPage(
+        status: OrderSummaryStatus,
+        message: String,
+        req: Request
+    ) async throws -> APIResponse<[OrderSummaryDTO]> {
+        let page = try PageRequest(req)
+        let search = try SearchQuery(req)
+        let ids = try await self.orderIDs(for: status, on: req.db)
+
+        // Tanpa search, semua id di sini berasal dari order_items yang punya FK
+        // ke orders, jadi jumlahnya sama dengan jumlah order yang cocok. Begitu
+        // ada search, totalnya harus dihitung ulang lewat query.
+        let total: Int
+        if ids.isEmpty {
+            total = 0
+        } else if search == nil {
+            total = ids.count
+        } else {
+            total = try await Order.query(on: req.db)
+                .filter(\.$id ~~ ids)
+                .filter(search: search)
+                .count()
+        }
+
+        let pageInfo = PageInfo(
+            page: page.page,
+            perPage: page.perPage,
+            total: total
+        )
+
+        guard total > 0 else {
+            return APIResponse(
+                success: true,
+                message: message,
+                data: [],
+                pageInfo: pageInfo
+            )
+        }
+
         let orders = try await Order.query(on: req.db)
+            .filter(\.$id ~~ ids)
+            .filter(search: search)
             .with(\.$customer)
             .with(\.$items)
+            .sort(\.$createdAt, .descending)
+            .limit(page.perPage)
+            .offset(page.offset)
             .all()
 
-        let inProgress =
-            orders
-            .filter {
-                !$0.items.isEmpty
-                    && !$0.items.allSatisfy { $0.status == .completed }
-            }
-            .sorted {
-                ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast)
-            }
-            .map { $0.toSummaryDTO(status: .inProgress) }
-
         return APIResponse(
-            status: true,
-            message: "Success get in progress orders",
-            data: inProgress
+            success: true,
+            message: message,
+            data: orders.map { $0.toSummaryDTO(status: status) },
+            pageInfo: pageInfo
         )
+    }
+
+    /// `inProgress`: order yang masih punya item belum completed.
+    /// `completed`: order yang punya item dan semua item-nya sudah completed.
+    private func orderIDs(
+        for status: OrderSummaryStatus,
+        on db: any Database
+    ) async throws -> [UUID] {
+        let unfinished = try await OrderItem.query(on: db)
+            .filter(\.$status != .completed)
+            .unique()
+            .all(\.$order.$id)
+
+        switch status {
+        case .inProgress:
+            return unfinished
+        case .completed:
+            let unfinishedIDs = Set(unfinished)
+            let withItems = try await OrderItem.query(on: db)
+                .unique()
+                .all(\.$order.$id)
+
+            return withItems.filter { !unfinishedIDs.contains($0) }
+        }
     }
 
     @Sendable
@@ -138,7 +210,7 @@ struct OrderController: RouteCollection {
         }
 
         return APIResponse(
-            status: true,
+            success: true,
             message: "Successfully fetched order detail",
             data: order.toDetailDTO()
         )
@@ -179,7 +251,6 @@ struct OrderController: RouteCollection {
                 let newCustomer = Customer()
                 newCustomer.name = name
                 newCustomer.phone = dto.customer.phone ?? ""
-                newCustomer.email = dto.customer.email ?? ""
                 newCustomer.address = dto.customer.address ?? ""
                 try await newCustomer.save(on: db)
 
@@ -264,7 +335,7 @@ struct OrderController: RouteCollection {
             }
 
             return APIResponse(
-                status: true,
+                success: true,
                 message: "Success create order",
                 data: OrderCreateResponseDTO(
                     order: order.toDTO(),
