@@ -40,7 +40,7 @@ struct TrackingController: RouteCollection {
         }
 
         return APIResponse(
-            status: true,
+            success: true,
             message: "Successfully fetched order tracking",
             data: order.toTrackingDTO()
         )

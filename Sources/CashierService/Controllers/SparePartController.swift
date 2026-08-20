@@ -35,7 +35,7 @@ struct SparePartController: RouteCollection {
         }
 
         return APIResponse(
-            status: true,
+            success: true,
             message: "Success get all spare parts",
             data: spareParts
         )
@@ -49,7 +49,7 @@ struct SparePartController: RouteCollection {
         try await model.save(on: req.db)
 
         return APIResponse(
-            status: true,
+            success: true,
             message: "Spare part created",
             data: model.toDTO()
         )

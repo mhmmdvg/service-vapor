@@ -27,6 +27,7 @@ func configure(_ app: Application) async throws {
 
     await app.jwt.keys.add(hmac: .init(from: jwtSecret), digestAlgorithm: .sha256)
     app.middleware.use(ErrorEnvelopeMiddleware())
+    configureContentCoding()
     
     
 //    app.migrations.add(CreateTodo())

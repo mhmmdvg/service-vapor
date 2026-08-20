@@ -7,11 +7,6 @@
 
 import Vapor
 
-struct ErrorResponse: Content {
-    var status: Bool
-    var message: String
-}
-
 struct ErrorEnvelopeMiddleware: AsyncMiddleware {
     func respond(to request: Request, chainingTo next: any AsyncResponder)
         async throws -> Response
@@ -33,10 +28,15 @@ struct ErrorEnvelopeMiddleware: AsyncMiddleware {
                 message = error.localizedDescription
             }
 
-            let errorResponse = ErrorResponse(status: false, message: message)
+            // Pakai envelope yang sama dengan response sukses supaya client cuma
+            // perlu satu parser, sekaligus dapat `meta.request_id` buat trace error.
+            let response = try await APIResponse<String>(
+                success: false,
+                message: message
+            )
+            .encodeResponse(for: request)
+            response.status = status
 
-            let response = Response(status: status)
-            try response.content.encode(errorResponse)
             return response
         }
     }
