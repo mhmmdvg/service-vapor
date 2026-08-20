@@ -18,24 +18,24 @@ struct OrderController: RouteCollection {
             .openAPI(
                 summary: "List Orders",
                 description:
-                    "Ambil semua order, urut dari yang terbaru. Berpaginasi lewat query `page` dan `per_page` (default \(PageRequest.defaultPerPage), maksimal \(PageRequest.maxPerPage))",
-                query: .type(PageQueryDTO.self),
+                    "Ambil semua order, urut dari yang terbaru. Berpaginasi lewat query `page` dan `per_page` (default \(PageRequest.defaultPerPage), maksimal \(PageRequest.maxPerPage)). Query `search` menyaring berdasarkan kode order, nama customer, atau nomor HP customer",
+                query: .type(OrderListQueryDTO.self),
                 response: .type(APIResponse<[OrderDTO]>.self)
             )
         orders.get("history", use: self.history)
             .openAPI(
                 summary: "List Order History",
                 description:
-                    "Ambil order yang seluruh order item-nya sudah completed, dipakai buat layar riwayat order. Berpaginasi lewat query `page` dan `per_page`",
-                query: .type(PageQueryDTO.self),
+                    "Ambil order yang seluruh order item-nya sudah completed, dipakai buat layar riwayat order. Berpaginasi lewat query `page` dan `per_page`, bisa disaring lewat query `search`",
+                query: .type(OrderListQueryDTO.self),
                 response: .type(APIResponse<[OrderSummaryDTO]>.self)
             )
         orders.get("in-progress", use: self.inProgress)
             .openAPI(
                 summary: "List in-progress order",
                 description:
-                    "List order yang masih progress. Berpaginasi lewat query `page` dan `per_page`",
-                query: .type(PageQueryDTO.self),
+                    "List order yang masih progress. Berpaginasi lewat query `page` dan `per_page`, bisa disaring lewat query `search`",
+                query: .type(OrderListQueryDTO.self),
                 response: .type(APIResponse<[OrderSummaryDTO]>.self)
             )
         orders.post(use: self.create)
@@ -60,9 +60,13 @@ struct OrderController: RouteCollection {
     @Sendable
     func index(req: Request) async throws -> APIResponse<[OrderDTO]> {
         let page = try PageRequest(req)
+        let search = try SearchQuery(req)
 
-        let total = try await Order.query(on: req.db).count()
+        let total = try await Order.query(on: req.db)
+            .filter(search: search)
+            .count()
         let orders = try await Order.query(on: req.db)
+            .filter(search: search)
             .with(\.$customer)
             .with(\.$cashier)
             .sort(\.$createdAt, .descending)
@@ -111,17 +115,31 @@ struct OrderController: RouteCollection {
         req: Request
     ) async throws -> APIResponse<[OrderSummaryDTO]> {
         let page = try PageRequest(req)
+        let search = try SearchQuery(req)
         let ids = try await self.orderIDs(for: status, on: req.db)
 
-        // Semua id di sini berasal dari order_items yang punya FK ke orders,
-        // jadi jumlahnya sama dengan jumlah order yang cocok.
+        // Tanpa search, semua id di sini berasal dari order_items yang punya FK
+        // ke orders, jadi jumlahnya sama dengan jumlah order yang cocok. Begitu
+        // ada search, totalnya harus dihitung ulang lewat query.
+        let total: Int
+        if ids.isEmpty {
+            total = 0
+        } else if search == nil {
+            total = ids.count
+        } else {
+            total = try await Order.query(on: req.db)
+                .filter(\.$id ~~ ids)
+                .filter(search: search)
+                .count()
+        }
+
         let pageInfo = PageInfo(
             page: page.page,
             perPage: page.perPage,
-            total: ids.count
+            total: total
         )
 
-        guard !ids.isEmpty else {
+        guard total > 0 else {
             return APIResponse(
                 success: true,
                 message: message,
@@ -132,6 +150,7 @@ struct OrderController: RouteCollection {
 
         let orders = try await Order.query(on: req.db)
             .filter(\.$id ~~ ids)
+            .filter(search: search)
             .with(\.$customer)
             .with(\.$items)
             .sort(\.$createdAt, .descending)
@@ -232,7 +251,6 @@ struct OrderController: RouteCollection {
                 let newCustomer = Customer()
                 newCustomer.name = name
                 newCustomer.phone = dto.customer.phone ?? ""
-                newCustomer.email = dto.customer.email ?? ""
                 newCustomer.address = dto.customer.address ?? ""
                 try await newCustomer.save(on: db)
 

@@ -20,8 +20,10 @@ final class Customer: Model, @unchecked Sendable {
     @Field(key: "phone")
     var phone: String
 
-    @Field(key: "email")
-    var email: String
+    /// Opsional: nggak diminta waktu create order, cuma dipakai kalau customer
+    /// memang kasih email.
+    @OptionalField(key: "email")
+    var email: String?
     
     @Field(key: "address")
     var address: String
@@ -35,7 +37,7 @@ final class Customer: Model, @unchecked Sendable {
         id: UUID? = nil,
         name: String,
         phone: String,
-        email: String,
+        email: String? = nil,
         address: String
     ) {
         self.id = id
