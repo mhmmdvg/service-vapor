@@ -18,9 +18,9 @@ struct OrderController: RouteCollection {
             .openAPI(
                 summary: "List Orders",
                 description:
-                    "Ambil semua order, urut dari yang terbaru. Berpaginasi lewat query `page` dan `per_page` (default \(PageRequest.defaultPerPage), maksimal \(PageRequest.maxPerPage)). Query `search` menyaring berdasarkan kode order, nama customer, atau nomor HP customer",
+                    "Ambil semua order — jalan maupun selesai — urut dari yang terbaru, dipakai layar pencarian. Bentuk datanya sama dengan `/orders/in-progress` dan `/orders/history`, cuma `status`-nya dihitung per order karena satu halaman bisa campur. Berpaginasi lewat query `page` dan `per_page` (default \(PageRequest.defaultPerPage), maksimal \(PageRequest.maxPerPage)). Query `search` menyaring berdasarkan kode order, nama customer, atau nomor HP customer",
                 query: .type(OrderListQueryDTO.self),
-                response: .type(APIResponse<[OrderDTO]>.self)
+                response: .type(APIResponse<[OrderSummaryDTO]>.self)
             )
         orders.get("history", use: self.history)
             .openAPI(
@@ -58,22 +58,24 @@ struct OrderController: RouteCollection {
     }
 
     @Sendable
-    func index(req: Request) async throws -> APIResponse<[OrderDTO]> {
+    func index(req: Request) async throws -> APIResponse<[OrderSummaryDTO]> {
         let page = try PageRequest(req)
         let search = try SearchQuery(req)
 
         let total = try await Order.query(on: req.db)
             .filter(search: search)
             .count()
+        // `items` di-load karena ringkasannya butuh jumlah device, totalnya, dan status yang
+        // dihitung dari item. `cashier` tidak, karena tidak ikut ditampilkan di ringkasan.
         let orders = try await Order.query(on: req.db)
             .filter(search: search)
             .with(\.$customer)
-            .with(\.$cashier)
+            .with(\.$items)
             .sort(\.$createdAt, .descending)
             .limit(page.perPage)
             .offset(page.offset)
             .all()
-            .map { $0.toDTO() }
+            .map { $0.toSummaryDTO() }
 
         return APIResponse(
             success: true,
