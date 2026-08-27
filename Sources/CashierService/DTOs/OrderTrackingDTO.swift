@@ -8,6 +8,10 @@
 import Vapor
 
 struct OrderTrackingDTO: Content {
+    /// Lets a cashier scanning the receipt open the order itself, rather than only its progress.
+    /// Harmless to expose on this unauthenticated route: the id is not a credential, and every
+    /// endpoint that takes one still requires a token.
+    var id: UUID?
     var orderCode: String
     var createdAt: Date?
     var items: [OrderItemTrackingDTO]
@@ -33,6 +37,7 @@ struct StatusHistoryPointDTO: Content {
 extension Order {
     func toTrackingDTO() -> OrderTrackingDTO {
         .init(
+            id: self.id,
             orderCode: self.orderCode,
             createdAt: self.createdAt,
             items: self.items.map { $0.toTrackingDTO() }
